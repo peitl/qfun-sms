@@ -197,6 +197,8 @@ int main(int argc, char **argv) {
         ->default_val(7);
     app.add_option("-i, --interval", options.interval, "Learning interval.")
         ->default_val(64);
+    app.add_option("-w, --vertices", options.sms_opts.vertices, "Number of vertices for SAT modulo symmetries")
+        ->default_val(2);
     app.add_option("-n, --initial", options.initial,
                    "Initial refinement for quant levels <LEV>.")
         ->default_val(4);

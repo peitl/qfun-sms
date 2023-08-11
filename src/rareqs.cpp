@@ -42,6 +42,7 @@ ostream &Rareqs::prn_strat(ostream &o, Var v, AigLit strategy,
 
 size_t Rareqs::sum_ref_counter = 0;
 double Rareqs::learning_time = 0.0;
+bool RareqsSAT::is_first_invocation = true;
 
 Rareqs::Rareqs(QuantifierType qt, const Options &options, AigFactory &factory)
     : RareqsBase(options, qt), block(options.get_blocking()),
@@ -434,7 +435,12 @@ void RareqsSAT::add_game(const Game &g) {
 }
 
 RareqsSAT::RareqsSAT(QuantifierType qt, const Options &options, AigFactory &fac)
-    : RareqsBase(options, qt), factory(fac) {
+    : RareqsBase(options, qt), factory(fac)
+#ifdef USE_SMS
+      , s(SMSWrap(is_first_invocation ? options.sms_opts.vertices : 2))
+#endif
+    {
+    is_first_invocation = false;
     enc.reset(new Encoder<SATSolver>(*this, 0, factory, s));
     if (options.get_seed()) {
 #ifdef USE_MINISAT

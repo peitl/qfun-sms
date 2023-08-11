@@ -1,5 +1,10 @@
 #pragma once
 #include <string>
+class SMSOptions {
+  public:
+    int vertices;
+};
+
 class Options {
   public:
     int get_verbose() const { return verbose; }
@@ -41,4 +46,6 @@ class Options {
     int seed;
 
     std::string external_sat;
+
+    SMSOptions sms_opts;
 };

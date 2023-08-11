@@ -19,6 +19,12 @@
 #include "ipasir_wrap.h"
 typedef SATSPC::IPASIRWrap SATSOLVER;
 
+#elif USE_SMS
+
+#define SATSPC Minisat
+#include "sms_wrap.h"
+typedef SATSPC::SMSWrap SATSOLVER;
+
 #else
 
 #define SATSPC Minisat

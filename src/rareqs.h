@@ -162,4 +162,6 @@ class RareqsSAT : public RareqsBase, public VarManager {
     FreshVars fresh;
     std::vector<SATSPC::Var> free;
     std::vector<SATSPC::Var> fresh_vars;
+
+    static bool is_first_invocation;
 };
