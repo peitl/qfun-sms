@@ -39,6 +39,10 @@ class RareqsBase {
     virtual size_t get_sum_refine_counter() const = 0;
     virtual const std::vector<SATSPC::Var> &get_free() const = 0;
 
+    std::unique_ptr<RareqsBase> abstraction_solver;
+    size_t candidates = 0;
+    clock_t calc_t = 0;
+
   protected:
     const Options &options;
     const int verb;
@@ -49,6 +53,7 @@ class RareqsBase {
             OUT << ' ';
         return OUT;
     }
+
 };
 
 class Rareqs : public RareqsBase {
@@ -59,7 +64,7 @@ class Rareqs : public RareqsBase {
 
   public:
     Rareqs(QuantifierType qt, const Options &options, AigFactory &factory);
-    virtual ~Rareqs();
+    virtual ~Rareqs() {if (persistent_bottom_solver != nullptr) delete persistent_bottom_solver;} ;
     virtual bool wins();
     virtual void add_free(SATSPC::Var v);
     virtual const std::vector<SATSPC::Var> &get_free() const { return free; }
@@ -97,7 +102,8 @@ class Rareqs : public RareqsBase {
     std::unordered_map<SATSPC::Var, AigLit> strategies;
     bool calc_counter_move(const Game &game, const Move &candidate,
                            /*out*/ Move &counter_move,
-                           /*out*/ std::vector<Lit> &block_clause);
+                           /*out*/ std::vector<Lit> &block_clause
+                           );
     bool win_abstr(std::unique_ptr<RareqsBase> &abstraction_solver,
                    Move &candidate);
     void refine(std::unique_ptr<RareqsBase> &abstraction_solver,
@@ -116,6 +122,8 @@ class Rareqs : public RareqsBase {
     inline bool should_block(const Game &g) const {
         return block && block_level <= g.p.size();
     }
+
+    SATSOLVER* persistent_bottom_solver = nullptr;
 };
 
 class RareqsSAT : public RareqsBase, public VarManager {
@@ -157,11 +165,12 @@ class RareqsSAT : public RareqsBase, public VarManager {
             OUT << ' ';
         return OUT;
     }
-    SATSOLVER s;
     std::unique_ptr<Encoder<SATSOLVER>> enc;
     FreshVars fresh;
     std::vector<SATSPC::Var> free;
     std::vector<SATSPC::Var> fresh_vars;
 
+  public:
+    SATSOLVER s;
     static bool is_first_invocation;
 };

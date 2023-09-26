@@ -23,7 +23,9 @@ class SMSWrap {
   public:
     inline const Minisat::LSet &get_conflict() { return _conflict; }
     inline const Minisat::vec<Minisat::lbool> &get_model() { return _model; }
-    SMSWrap(int vertices = 2) :_nvars(0), sms(SolverConfig(vertices)) {}
+    SMSWrap(int vertices = 2) :_nvars(0), sms(SolverConfig(vertices, 20000)) {
+        sms.config.printStats = true;
+    }
 
     //virtual ~IPASIRWrap() { ipasir_release(_s); }
 
@@ -153,15 +155,9 @@ inline bool SMSWrap::solve(const Minisat::vec<Minisat::Lit> &assumps) {
 }
 
 inline bool SMSWrap::solve() {
-    const int r = sms.solve(vector<int>()) ? 10 : 20;
-    assert(r == 10 || r == 20);
-    if (r != 10 && r != 20) {
-        std::cerr << "Something went wrong with ipasir_solve call, retv: " << r
-                  << std::endl;
-        exit(1);
-    }
+    const bool r = sms.GraphSolver::solve();
     _model.clear();
-    if (r == 10) {
+    if (r) {
         _model.growTo(_nvars + 1, Minisat::l_Undef);
         for (int v = _nvars; v; v--) {
             const int vval = sms.solver->val(v);
@@ -170,6 +166,6 @@ inline bool SMSWrap::solve() {
                             : (vval < 0 ? Minisat::l_False : Minisat::l_True);
         }
     }
-    return r == 10;
+    return r;
 }
 } // namespace SATSPC

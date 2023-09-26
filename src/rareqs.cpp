@@ -57,8 +57,6 @@ Rareqs::Rareqs(QuantifierType qt, const Options &options, AigFactory &factory)
     LOG(3, out() << "learning on: " << options.get_learn() << endl;);
 }
 
-Rareqs::~Rareqs() {}
-
 void Rareqs::get_move(Move &out_move) { move.copyTo(out_move); }
 void Rareqs::get_move(Move &out_move, const vector<Var> &vs) {
     set(vs, move, out_move);
@@ -193,17 +191,20 @@ bool Rareqs::calc_counter_move(const Game &game, const Move &candidate,
     LOG(4, out() << "counter_move chk" << endl;);
     assert(!game.p.empty() && game.p[0].first == neg(qt));
     if (game.p.size() <= 1) {
-        SATSOLVER s;
-        SatVarManager svm(s);
-        Encoder<SATSOLVER> e(svm, 0, factory, s);
-        e.alloc_var(max(maxv(free), maxv(game.p[0].second)));
-        const QuantifierType opponent = neg(qt);
-        e.add(e(opponent == UNIVERSAL ? factory.neg(game.m) : game.m));
+        clock_t beg = clock();
+        if (persistent_bottom_solver == nullptr) { // only create one SAT solver for each run of candidates
+            persistent_bottom_solver = new SATSOLVER();
+            SatVarManager svm(*persistent_bottom_solver);
+            Encoder<SATSOLVER> e(svm, 0, factory, *persistent_bottom_solver);
+            e.alloc_var(max(maxv(free), maxv(game.p[0].second)));
+            const QuantifierType opponent = neg(qt);
+            e.add(e(opponent == UNIVERSAL ? factory.neg(game.m) : game.m));
+        }
         vec<Lit> a;
         to_lits(free, candidate, a, true);
-        const bool retv = s.solve(a);
+        const bool retv = persistent_bottom_solver->solve(a);
         if (retv)
-            set(game.p[0].second, s.get_model(), counter_move);
+            set(game.p[0].second, persistent_bottom_solver->get_model(), counter_move);
         /* TODO
         if (retv && should_block(game)) {
             block_clause.reserve(s.conflict.size());
@@ -211,6 +212,8 @@ bool Rareqs::calc_counter_move(const Game &game, const Move &candidate,
         block_clause.push_back(s.conflict[i]);
         }
             */
+        clock_t fin = clock();
+        calc_t += fin - beg;
         return retv;
     }
     Substitute sub(factory, candidate);
@@ -262,18 +265,20 @@ bool Rareqs::wins() {
     for (const auto &g : games.gs)
         ml = std::max(ml, g.p.size());
 
-    unique_ptr<RareqsBase> abstraction_solver(
-        ml < 3 ? static_cast<RareqsBase *>(new RareqsSAT(qt, options, factory))
-               : static_cast<RareqsBase *>(new Rareqs(qt, options, factory)));
-    LOG(5, out() << "using incremental abstraction: "
-                 << (abstraction_solver->is_incremental() ? "Y" : "N")
-                 << endl;);
-    abstraction_solver->set_dbg_offset(dbg_off + 2);
-    for (Var v : free)
-        abstraction_solver->add_free(v);
-    abstraction_solver->strengthen(games.prop);
-    for (LitSet &c : games.clauses)
-        abstraction_solver->strengthen(c);
+    if (abstraction_solver == unique_ptr<RareqsBase>{}) {
+        abstraction_solver = unique_ptr<RareqsBase>(
+            ml < 3 ? static_cast<RareqsBase *>(new RareqsSAT(qt, options, factory))
+                   : static_cast<RareqsBase *>(new Rareqs(qt, options, factory)));
+        LOG(5, out() << "using incremental abstraction: "
+                     << (abstraction_solver->is_incremental() ? "Y" : "N")
+                     << endl;);
+        abstraction_solver->set_dbg_offset(dbg_off + 2);
+        for (Var v : free)
+            abstraction_solver->add_free(v);
+        abstraction_solver->strengthen(games.prop);
+        for (LitSet &c : games.clauses)
+            abstraction_solver->strengthen(c);
+    }
     Move candidate, cex;
     vector<Lit> block_clause;
     lbool retv = l_Undef;
@@ -297,6 +302,7 @@ bool Rareqs::wins() {
             retv = l_False;
             break;
         }
+        candidates++;
         LOG(4, print_model(out() << "candidate:", candidate, free) << endl;);
         retv = l_True;
         for (size_t gi = 0; gi < games.gs.size(); ++gi) {

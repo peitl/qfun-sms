@@ -33,7 +33,7 @@ void log_header(const string &filename, const Prefix &pref, int argc,
 int run_solver(QSolver *ps);
 int run_solver(const Options &options, Rareqs *ps);
 ostream &print_winning_move(ostream &o, const Move &wm);
-void block_move(const Move &wm, Rareqs *ps);
+void block_move(const Move &wm, Rareqs *ps, const Options& options);
 
 extern "C" {
 const char *ipasir_signature(void);
@@ -279,8 +279,14 @@ void log_computation(const Rareqs *ps) {
 int run_solver(const Options &options, Rareqs *ps) {
     const bool w = ps->wins();
     const bool r = (ps->quantifier_type() == EXISTENTIAL) == w;
-    log_computation(ps);
+    if (!options.get_win_mv_enum() || !w) {
+        log_computation(ps);
+        cout << (r ? "c solution found (more may exist)" : "c no solutions") << endl;
+        cout << "c pondered " << ps->candidates << " candidate" << (ps->candidates == 1 ? "" : "s") << endl;
+        cout << "c time in the innermost solver " << ((double) ps->calc_t) / CLOCKS_PER_SEC << endl;
+    }
     cout << "s cnf " << (r ? '1' : '0') << std::endl;
+    size_t num_sol = 0;
     if (w) {
         Move wm;
         while (1) {
@@ -290,12 +296,16 @@ int run_solver(const Options &options, Rareqs *ps) {
                 print_winning_move(cout, wm);
             if (!options.get_win_mv_enum())
                 break;
-            block_move(wm, ps);
+            num_sol++;
+            block_move(wm, ps, options);
             if (!ps->wins()) {
+                log_computation(ps);
                 cout << "c enumeration completed" << endl;
+                cout << "c pondered " << ps->candidates << " candidate" << (ps->candidates == 1 ? "" : "s") << endl;
+                cout << "c found " << num_sol  << " solution" << (num_sol == 1 ? "" : "s") << endl;
+                cout << "c time in the innermost solver " << ((double) ps->calc_t) / CLOCKS_PER_SEC << endl;
                 break;
             }
-            log_computation(ps);
         }
     }
     LOG_LRN(lout << "RESULT:" << (r ? "TRUE" : "FALSE") << endl;);
@@ -319,17 +329,23 @@ ostream &print_winning_move(ostream &o, const Move &wm) {
     return o << endl;
 }
 
-void block_move(const Move &wm, Rareqs *ps) {
+void block_move(const Move &wm, Rareqs *ps, const Options &options) {
+#ifdef USE_SMS
+    int e = options.sms_opts.vertices * (options.sms_opts.vertices - 1) / 2;
+#endif
     LiteralVector blocking_clause;
     for (Var v : ps->get_free()) {
         const lbool vv = eval(v, wm);
         if (vv == l_Undef)
             continue;
-        blocking_clause.push_back(vv == l_False ? mkLit(v) : ~mkLit(v));
+#ifdef USE_SMS
+        if (v <= e)
+#endif
+            blocking_clause.push_back(vv == l_False ? mkLit(v) : ~mkLit(v));
     }
     auto blc = LitSet::mk(blocking_clause);
     // cerr<<"blocking_clause:"<<blc<<endl;
-    ps->strengthen(blc);
+    ps->abstraction_solver->strengthen(blc); // persist the abstraction solver across incremental calls, strengthen directly
 }
 
 bool ends_with(const std::string &filename, const char *suf) {
