@@ -14,7 +14,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "solveCadicalClass.hpp"
+#include "cadicalSMS.hpp"
 
 #define SATSPC Minisat
 namespace SATSPC {
