@@ -5,7 +5,6 @@
  * Copyright (C) 2019, Mikolas Janota
  */
 #pragma once
-#include "ipasir.h"
 #include "minisat/core/SolverTypes.h"
 #include <cassert>
 #include <cstdlib>
