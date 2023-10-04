@@ -22,7 +22,8 @@ class SMSWrap {
   public:
     inline const Minisat::LSet &get_conflict() { return _conflict; }
     inline const Minisat::vec<Minisat::lbool> &get_model() { return _model; }
-    SMSWrap(int vertices = 2) :_nvars(0), sms(SolverConfig(vertices, 20000)) {
+
+    SMSWrap(int vertices = 2, int cutoff = 20000) :_nvars(0), sms(SolverConfig(vertices, cutoff)) {
         sms.config.printStats = true;
     }
 
@@ -49,7 +50,19 @@ class SMSWrap {
         return mapped_clause;
     }
 
+    vector<int> lit2val(const vector<Minisat::Lit> &cl) {
+        vector<int> mapped_clause(cl.size());
+        for (size_t i = 0; i < cl.size(); ++i)
+            mapped_clause[i] = lit2val(cl[i]);
+        return mapped_clause;
+    }
+
     inline bool addClause(const Minisat::vec<Minisat::Lit> &cl) {
+        sms.addClause(lit2val(cl), false);
+        return true;
+    }
+
+    inline bool addClause(const vector<Minisat::Lit> &cl) {
         sms.addClause(lit2val(cl), false);
         return true;
     }

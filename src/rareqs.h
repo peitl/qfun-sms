@@ -124,6 +124,8 @@ class Rareqs : public RareqsBase {
     }
 
     SATSOLVER* persistent_bottom_solver = nullptr;
+  public:
+    SATSOLVER* persistent_top_solver = nullptr;
 };
 
 class RareqsSAT : public RareqsBase, public VarManager {

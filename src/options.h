@@ -3,6 +3,7 @@
 class SMSOptions {
   public:
     int vertices;
+    int cutoff;
 };
 
 class Options {

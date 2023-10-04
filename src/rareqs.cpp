@@ -245,19 +245,21 @@ bool Rareqs::wins() {
     if (factory.is_false(games.prop))
         return false;
     if (games.gs.empty()) {
-        SATSOLVER s;
-        SatVarManager svm(s);
-        Encoder<SATSOLVER> e(svm, 0, factory, s);
-        LOG(4, factory.print_fancy(out() << "solving sat:" << endl, games.prop,
-                                   dbg_off)
-                   << endl;);
-        e.alloc_var(maxv(free));
-        e.add(e(games.prop));
-        for (const auto &cl : games.clauses)
-            e.add(cl);
-        const bool retv = s.solve();
+        if (persistent_top_solver == nullptr) {
+            persistent_top_solver = new SATSOLVER(options.sms_opts.vertices, options.sms_opts.cutoff);
+            SatVarManager svm(*persistent_top_solver);
+            Encoder<SATSOLVER> e(svm, 0, factory, *persistent_top_solver);
+            LOG(4, factory.print_fancy(out() << "solving sat:" << endl, games.prop,
+                                       dbg_off)
+                       << endl;);
+            e.alloc_var(maxv(free));
+            e.add(e(games.prop));
+            for (const auto &cl : games.clauses)
+                e.add(cl);
+        }
+        const bool retv = persistent_top_solver->solve();
         if (retv)
-            set(free, s.get_model(), move);
+            set(free, persistent_top_solver->get_model(), move);
         return retv;
     }
     LOG(6, out() << "fresh:" << fresh << endl;);
@@ -443,7 +445,7 @@ void RareqsSAT::add_game(const Game &g) {
 RareqsSAT::RareqsSAT(QuantifierType qt, const Options &options, AigFactory &fac)
     : RareqsBase(options, qt), factory(fac)
 #ifdef USE_SMS
-      , s(SMSWrap(is_first_invocation ? options.sms_opts.vertices : 2))
+      , s(SMSWrap(is_first_invocation ? options.sms_opts.vertices : 2, options.sms_opts.cutoff))
 #endif
     {
     is_first_invocation = false;

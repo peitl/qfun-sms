@@ -199,6 +199,8 @@ int main(int argc, char **argv) {
         ->default_val(64);
     app.add_option("-w, --vertices", options.sms_opts.vertices, "Number of vertices for SAT modulo symmetries")
         ->default_val(2);
+    app.add_option("--sms-cutoff", options.sms_opts.cutoff, "Number of vertices for SAT modulo symmetries")
+        ->default_val(0);
     app.add_option("-n, --initial", options.initial,
                    "Initial refinement for quant levels <LEV>.")
         ->default_val(4);
@@ -345,7 +347,12 @@ void block_move(const Move &wm, Rareqs *ps, const Options &options) {
     }
     auto blc = LitSet::mk(blocking_clause);
     // cerr<<"blocking_clause:"<<blc<<endl;
-    ps->abstraction_solver->strengthen(blc); // persist the abstraction solver across incremental calls, strengthen directly
+    if (ps->abstraction_solver) {
+        ps->abstraction_solver->strengthen(blc); // persist the abstraction solver across incremental calls, strengthen directly
+    } else {
+        // this should only happen when solving formulas without quantifier alternations
+        ps->persistent_top_solver->addClause(blocking_clause);
+    }
 }
 
 bool ends_with(const std::string &filename, const char *suf) {
