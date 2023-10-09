@@ -90,7 +90,7 @@ if [ $sms = yes ]
 then
   CMKFLAGS="$CMKFLAGS -DUSE_SMS=ON"
   msg "expecting libsms.a and libcadical.a (with IPASIR-UP; the copy used to build SMS) on library path"
-  msg "expecting SMS headers in ../sms-cpp-impl/src (or on include path; see CMakeLists.txt)"
+  msg "expecting SMS headers in a directory called sms on include path"
 else
   CMKFLAGS="$CMKFLAGS -DUSE_SMS=OFF"
 fi
