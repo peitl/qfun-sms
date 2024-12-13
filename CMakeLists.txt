@@ -91,30 +91,39 @@ elseif(USE_SMS)
   find_path(SMS_INCLUDE_DIR "sms.hpp" PATH_SUFFIXES "sms")
   include_directories("${SMS_INCLUDE_DIR}")
   find_library(CADICAL_LIBRARY
-    NAMES cadical
-	#HINTS "../sms-cpp-impl/cadical/build"
+    NAMES smscadical
     )
   if(NOT CADICAL_LIBRARY)
-    message(FATAL_ERROR "CADICAL library not found")
+	  message(FATAL_ERROR "CaDiCaL library (libsmscadical) not found")
   else()
     message(STATUS "Found ${CADICAL_LIBRARY}")
   endif()
-  add_library(cadical STATIC IMPORTED GLOBAL)
-  set_target_properties(cadical PROPERTIES IMPORTED_LOCATION ${CADICAL_LIBRARY})
+  add_library(smscadical STATIC IMPORTED GLOBAL)
+  set_target_properties(smscadical PROPERTIES IMPORTED_LOCATION ${CADICAL_LIBRARY})
 
-  find_library(SMS_LIBRARY
-    NAMES sms
-    )
+  if (STATIC_BINARY)
+	  find_library(SMS_LIBRARY
+		NAMES libsms.a sms
+		)
+  else()
+	  find_library(SMS_LIBRARY
+		NAMES libsms.so sms
+		)
+  endif()
   if(NOT SMS_LIBRARY)
 	message(FATAL_ERROR "SMS library not found")
   else()
 	message(STATUS "Found ${SMS_LIBRARY}")
   endif()
-  add_library(sms STATIC IMPORTED GLOBAL)
+  if (STATIC_BINARY)
+	  add_library(sms STATIC IMPORTED GLOBAL)
+  else()
+	  add_library(sms SHARED IMPORTED GLOBAL)
+  endif()
   set_target_properties(sms PROPERTIES IMPORTED_LOCATION ${SMS_LIBRARY})
 
   target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE USE_SMS=1)
-  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC sms cadical)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC sms smscadical)
 elseif(USE_CMS)
   message(STATUS "Using cms")
   include_directories(contrib/minisat/include) # even though we are not using minisat, we use its literals to communicate it with ipasir
