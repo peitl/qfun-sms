@@ -5,14 +5,14 @@ set -u
 
 usage () {
 cat <<EOF
-usage: configure [-h|--help][-g|--debug][-c|--cadical][-r|--cms][-s|--static]
+usage: configure [-h|--help][-g|--debug][-c|--cadical][-r|--cms][-m|--sms][-s|--static]
 
 -h | --help    print this command line option summary
 -g | --debug   compile with assertion checking and symbols
 -c | --cadical compile with cadical instead of minisat
--r | --cms compile with cryptominisat (cms) instead of minisat
--m | --sms compile with SAT modulo symmetries (SMS) for graph enumeration (cadical backend)
--s | --static compile static
+-r | --cms     compile with cryptominisat (cms) instead of minisat
+-m | --sms     compile with SAT modulo symmetries (SMS) for graph enumeration (cadical backend)
+-s | --static  link statically
 EOF
 }
 
