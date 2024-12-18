@@ -195,9 +195,9 @@ int main(int argc, char **argv) {
         ->default_val(7);
     app.add_option("-i, --interval", options.interval, "Learning interval.")
         ->default_val(64);
-    app.add_option("-w, --vertices", options.sms_opts.vertices, "Number of vertices for SAT modulo symmetries")
+    app.add_option("-w, --vertices", options.sms_opts.vertices, "Number of vertices for SAT modulo symmetries (SMS). For more information, consult SMS docs.")
         ->default_val(2);
-    app.add_option("--sms-cutoff", options.sms_opts.cutoff, "Number of vertices for SAT modulo symmetries")
+    app.add_option("--sms-cutoff", options.sms_opts.cutoff, "Cutoff for the minimality check of SMS (20000 is a reasonable value). For more information, consult SMS docs.")
         ->default_val(0);
     app.add_option("-n, --initial", options.initial,
                    "Initial refinement for quant levels <LEV>.")
